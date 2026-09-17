@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="fs-m">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 产品面试三讲 · 手稿</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23b5341f'/%3E%3Ctext x='32' y='46' font-size='38' text-anchor='middle' fill='%23f7efdd' font-family='Kaiti SC,serif'%3E讲%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --paper: #f5f0e3;
+    --paper-card: #fbf7ec;
+    --paper-deep: #f0e9d7;
+    --ink: #26221a;
+    --ink-soft: #5c5546;
+    --ink-faint: #8d8471;
+    --vermillion: #b5341f;
+    --vermillion-lt: #e0684f;
+    --hairline: #d9cfb8;
+    --serif: "Songti SC", "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", serif;
+    --kai: "Kaiti SC", "STKaiti", "KaiTi", "Kaiti SC W5", serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+  html.fs-s { font-size: 92%; }
+  html.fs-m { font-size: 106%; }
+  html.fs-l { font-size: 121%; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 2;
+    overflow-x: hidden;
+    padding-top: 8px;
+  }
+
+  /* ---------- 纸张质感 ---------- */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse 120% 90% at 50% 0%, transparent 55%, rgba(38,34,26,.055));
+    z-index: 4;
+  }
+  body::after {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    opacity: .07;
+    mix-blend-mode: multiply;
+    z-index: 4;
+  }
+
+  ::selection { background: var(--vermillion); color: var(--paper); }
+
+  a:focus-visible, button:focus-visible { outline: 2px dashed var(--vermillion); outline-offset: 3px; }
+
+  /* ---------- 顶部装订线 + 进度 ---------- */
+  .band {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 6px; background: var(--vermillion); z-index: 100;
+  }
+  .band::after {
+    content: ""; position: absolute; top: 8px; left: 0; right: 0;
+    height: 1px; background: rgba(38,34,26,.28);
+  }
+  .progress {
+    position: fixed; top: 6px; left: 0;
+    height: 2px; width: 0;
+    background: var(--ink); z-index: 101;
+    transition: width .15s linear;
+  }
+
+  /* ---------- 版面 ---------- */
+  .layout {
+    max-width: 1230px;
+    margin: 0 auto;
+    padding: 34px 36px 0;
+    display: grid;
+    grid-template-columns: 208px minmax(0, 1fr);
+    column-gap: 66px;
+  }
+  main { max-width: 700px; padding-bottom: 20px; }
+
+  /* ---------- 目录（左侧栏） ---------- */
+  .toc {
+    position: sticky; top: 52px; align-self: start;
+    padding: 6px 0 140px;
+    font-size: .82rem;
+    animation: rise .9s .25s cubic-bezier(.22,.61,.36,1) both;
+  }
+  .toc-title {
+    font-family: var(--kai);
+    letter-spacing: .38em;
+    color: var(--ink-faint);
+    font-size: .78rem;
+    margin: 0 0 16px 12px;
+  }
+  .toc a {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 9px 12px;
+    color: var(--ink-soft);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    line-height: 1.55;
+    transition: color .2s, background .2s, border-color .2s;
+  }
+  .toc a .zh { font-family: var(--kai); color: var(--vermillion); min-width: 1.6em; }
+  .toc a .en { letter-spacing: .02em; }
+  .toc a:hover { color: var(--ink); }
+  .toc a.on {
+    color: var(--ink); font-weight: 600;
+    border-left-color: var(--vermillion);
+    background: rgba(181,52,31,.06);
+  }
+
+  /* ---------- 封面 ---------- */
+  .cover { position: relative; padding: 52px 0 60px; }
+  .cover > * { animation: rise .9s cubic-bezier(.22,.61,.36,1) both; }
+  .cover > *:nth-child(1) { animation-delay: .05s; }
+  .cover > *:nth-child(2) { animation-delay: .16s; }
+  .cover > *:nth-child(3) { animation-delay: .28s; }
+  .cover > *:nth-child(4) { animation-delay: .40s; }
+  .cover > *:nth-child(5) { animation-delay: .52s; }
+
+  .cover .kicker {
+    letter-spacing: .45em;
+    font-size: .8rem;
+    color: var(--vermillion);
+    font-weight: 600;
+    margin: 0 0 24px;
+  }
+  .cover h1 {
+    font-size: clamp(2.5rem, 6vw, 3.9rem);
+    line-height: 1.28;
+    margin: 0 0 16px;
+    font-weight: 900;
+    letter-spacing: .05em;
+  }
+  .cover .sub {
+    font-family: var(--kai);
+    font-size: 1.12rem;
+    color: var(--ink-soft);
+    margin: 0 0 32px;
+    line-height: 1.9;
+  }
+  .cover .meta {
+    font-size: .78rem;
+    color: var(--ink-faint);
+    letter-spacing: .14em;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    padding: 9px 2px;
+    display: flex; gap: 1.8em; flex-wrap: wrap;
+  }
+  .cover .abstract { margin-top: 32px; color: var(--ink-soft); }
+  .cover .abstract b { color: var(--ink); }
+
+  .seal {
+    position: absolute; top: 30px; right: -4px;
+    width: 86px; height: 86px;
+    background: var(--vermillion);
+    color: #f7efdd;
+    display: grid; grid-template-columns: 1fr 1fr; place-items: center;
+    font-family: var(--kai);
+    font-size: 1.5rem; line-height: 1;
+    transform: rotate(5deg);
+    box-shadow:
+      inset 0 0 0 3px rgba(247,239,221,.85),
+      inset 0 0 0 5px var(--vermillion),
+      inset 0 0 0 6.5px rgba(247,239,221,.4),
+      3px 5px 14px rgba(38,34,26,.28);
+    animation: stamp .65s .8s cubic-bezier(.2,.9,.3,1.25) both;
+    z-index: 2;
+  }
+  .wm {
+    position: absolute; right: -150px; top: -40px;
+    font-family: var(--kai);
+    font-size: 320px; line-height: 1;
+    color: rgba(38,34,26,.045);
+    pointer-events: none; user-select: none;
+    animation: fadein 2.5s .3s both;
+  }
+
+  /* ---------- 讲次区块 ---------- */
+  section.lecture {
+    position: relative;
+    border-top: 1px solid var(--hairline);
+    margin-top: 84px;
+    padding-top: 42px;
+    scroll-margin-top: 36px;
+  }
+  .ghost {
+    position: absolute; top: -30px; left: -12px;
+    font-family: var(--kai);
+    font-size: 9rem; line-height: 1;
+    color: rgba(38,34,26,.05);
+    pointer-events: none; user-select: none;
+  }
+  .vlabel {
+    position: absolute; left: -104px; top: 10px;
+    writing-mode: vertical-rl;
+    font-family: var(--kai);
+    font-size: .82rem;
+    letter-spacing: .42em;
+    color: var(--ink-faint);
+    display: none;
+  }
+  @media (min-width: 1460px) { .vlabel { display: block; } }
+
+  .kicker-line { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; }
+  .kicker-line .no {
+    font-family: var(--kai); color: var(--vermillion);
+    border: 1.5px solid var(--vermillion);
+    padding: 1px 10px 1px 12px;
+    font-size: .84rem; letter-spacing: .22em;
+  }
+  .kicker-line .ex { font-size: .72rem; letter-spacing: .24em; color: var(--ink-faint); }
+
+  h2 {
+    font-size: clamp(1.65rem, 3.4vw, 2.3rem);
+    margin: 0 0 8px;
+    font-weight: 900;
+    letter-spacing: .03em;
+    line-height: 1.5;
+    position: relative; z-index: 1;
+  }
+  .h2sub { font-family: var(--kai); color: var(--ink-soft); margin: 0 0 6px; font-size: 1rem; }
+  .intent {
+    margin: 18px 0 0;
+    padding: 9px 16px;
+    border-left: 3px solid var(--vermillion);
+    background: rgba(181,52,31,.05);
+    font-size: .9rem; line-height: 1.9;
+    color: var(--ink-soft);
+  }
+  .intent b { color: var(--vermillion); font-weight: 600; }
+
+  /* ---------- 核心论点 ---------- */
+  .thesis {
+    position: relative;
+    margin: 36px 0 10px;
+    padding: 22px 30px 22px 60px;
+    background: var(--paper-card);
+    border: 1px solid var(--hairline);
+  }
+  .thesis::before {
+    content: "「";
+    position: absolute; left: 16px; top: 50%;
+    transform: translateY(-52%);
+    font-family: var(--kai);
+    font-size: 2.7rem;
+    color: var(--vermillion);
+    line-height: 1;
+  }
+  .thesis p { margin: 0; font-size: 1.18rem; line-height: 1.95; font-weight: 700; }
+
+  .tag {
+    display: inline-block;
+    font-size: .7rem;
+    letter-spacing: .28em;
+    color: var(--vermillion);
+    border: 1px solid currentColor;
+    padding: 1px 8px 1px 11px;
+    margin: 0 0 12px;
+    font-weight: 600;
+    line-height: 1.9;
+  }
+  .tag--solid { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  /* ---------- 正文 ---------- */
+  h3 {
+    font-size: 1.24rem;
+    margin: 50px 0 16px;
+    font-weight: 700;
+    letter-spacing: .02em;
+    display: flex; align-items: baseline; gap: 12px;
+    line-height: 1.7;
+  }
+  h3 .idx {
+    font-family: var(--kai);
+    color: var(--vermillion);
+    font-size: .9rem;
+    border-bottom: 2px solid var(--vermillion);
+    padding-bottom: 3px;
+    letter-spacing: .08em;
+    flex: none;
+  }
+  p { margin: 0 0 1.05em; }
+  ul, ol { margin: 0 0 1.2em; padding-left: 1.5em; }
+  li { margin-bottom: .55em; }
+  li::marker { color: var(--vermillion); font-weight: 700; }
+  strong { font-weight: 700; }
+  .em-line { font-family: var(--kai); }
+
+  mark {
+    background: linear-gradient(180deg,
+      transparent 0%, transparent 18%,
+      rgba(240,193,77,.58) 18%, rgba(240,193,77,.58) 88%,
+      transparent 88%, transparent 100%);
+    color: inherit;
+    padding: 0 1px;
+  }
+
+  /* ---------- 表格 ---------- */
+  figure.tbl { margin: 28px 0 32px; }
+  figure.tbl figcaption {
+    font-size: .78rem; letter-spacing: .24em;
+    color: var(--ink-faint);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  figure.tbl figcaption::after { content: ""; flex: 1; height: 1px; background: var(--hairline); }
+  .tscroll { overflow-x: auto; border: 1px solid var(--ink); background: var(--paper-card); }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; line-height: 1.8; }
+  th {
+    background: var(--ink); color: #f3ecda;
+    font-weight: 600; text-align: left;
+    padding: 9px 14px;
+    font-size: .82rem; letter-spacing: .06em;
+    white-space: nowrap;
+  }
+  td { padding: 10px 14px; border-top: 1px solid var(--hairline); vertical-align: top; }
+  tbody tr:nth-child(even) { background: rgba(38,34,26,.03); }
+  td:first-child { white-space: nowrap; font-weight: 600; }
+
+  /* ---------- 卡片体系 ---------- */
+  .callout { margin: 32px 0; padding: 22px 26px; position: relative; }
+  .edge { background: transparent; border: 1.5px dashed rgba(38,34,26,.45); }
+  .edge p { margin: 0; color: var(--ink); }
+  .script { background: #f9f2e0; border-left: 4px solid var(--vermillion); }
+  .script blockquote {
+    margin: 0; font-family: var(--kai);
+    font-size: 1.04rem; line-height: 2.15;
+  }
+  .script blockquote p { margin: 0; }
+
+  .mines { background: var(--ink); color: #ece5d3; padding: 24px 28px 22px; margin: 36px 0; }
+  .mines .tag { color: var(--vermillion-lt); border-color: var(--vermillion-lt); }
+  .mines h4 {
+    margin: 0 0 12px; font-size: 1.02rem; font-weight: 700;
+    color: #fff; letter-spacing: .12em;
+    display: flex; gap: 10px; align-items: center;
+  }
+  .mines .lei {
+    width: 26px; height: 26px; flex: none;
+    background: var(--vermillion); color: #f7efdd;
+    display: inline-grid; place-items: center;
+    font-family: var(--kai); font-size: .92rem;
+    transform: rotate(-5deg);
+  }
+  .mines ol { margin: 0; padding-left: 1.35em; }
+  .mines li { margin-bottom: .65em; color: #e6ddc8; font-size: .93rem; line-height: 1.9; }
+  .mines li::marker { color: var(--vermillion-lt); }
+  .mines strong { color: #fff; }
+  .mines mark {
+    background: linear-gradient(180deg,
+      transparent 0%, transparent 18%,
+      rgba(224,104,79,.42) 18%, rgba(224,104,79,.42) 88%,
+      transparent 88%, transparent 100%);
+    color: #fff;
+  }
+
+  /* ---------- 决策链 / 流程 ---------- */
+  .chain { display: flex; align-items: stretch; flex-wrap: wrap; margin: 24px 0 4px; }
+  .chain .step {
+    border: 1.5px solid var(--ink);
+    padding: 7px 18px;
+    font-weight: 700;
+    background: var(--paper-card);
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .chain .step em {
+    display: block; font-style: normal;
+    font-size: .68rem; color: var(--ink-faint);
+    font-weight: 400; letter-spacing: .1em; margin-top: 1px;
+  }
+  .chain .arr { align-self: center; padding: 0 12px; color: var(--vermillion); font-size: 1.15rem; font-weight: 700; }
+  .chain-note { font-family: var(--kai); font-size: .86rem; color: var(--ink-soft); margin-bottom: 24px; letter-spacing: .04em; }
+
+  .flow { display: flex; align-items: stretch; gap: 10px; margin: 28px 0 6px; flex-wrap: wrap; }
+  .flow .node {
+    flex: 1; min-width: 128px;
+    border: 1.5px solid var(--ink);
+    background: var(--paper-card);
+    padding: 12px 14px;
+    text-align: center;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .flow .node b { display: block; font-size: 1rem; letter-spacing: .18em; }
+  .flow .node i { font-style: normal; font-family: var(--kai); color: var(--ink-soft); font-size: .8rem; margin-top: 2px; }
+  .flow .fa { align-self: center; color: var(--vermillion); font-size: 1.25rem; font-weight: 700; }
+
+  /* ---------- 图例 ---------- */
+  .legend { list-style: none; padding: 0; margin: 26px 0 0; border: 1px solid var(--hairline); background: var(--paper-card); }
+  .legend li {
+    display: flex; align-items: center; gap: 16px;
+    padding: 9px 18px;
+    border-top: 1px dashed var(--hairline);
+    font-size: .88rem; color: var(--ink-soft);
+    margin: 0;
+  }
+  .legend li:first-child { border-top: 0; }
+  .legend .demo { min-width: 96px; display: flex; justify-content: center; flex: none; }
+  .demo .d-script { font-family: var(--kai); background: #f9f2e0; border-left: 3px solid var(--vermillion); padding: 0 8px; font-size: .8rem; }
+  .demo .d-mines { background: var(--ink); color: #ece5d3; padding: 0 8px; font-size: .8rem; }
+  .demo .d-edge { border: 1.5px dashed rgba(38,34,26,.5); padding: 0 8px; font-size: .8rem; }
+
+  /* ---------- 四技术卡 ---------- */
+  .grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0 26px; }
+  .tech { border: 1px solid var(--hairline); background: var(--paper-card); padding: 16px 18px 6px; }
+  .tech .tname { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .tech .tname b { font-size: 1.02rem; }
+  .tech .tname .gana { font-family: var(--kai); color: var(--vermillion); font-size: .82rem; letter-spacing: .12em; flex: none; }
+  .tech p { font-size: .9rem; line-height: 1.85; color: var(--ink-soft); margin-bottom: 10px; }
+  .tech p strong { color: var(--ink); }
+
+  /* ---------- 问答 ---------- */
+  .qa { border-top: 2px solid var(--ink); margin: 24px 0 0; }
+  .qa-item { padding: 16px 2px 14px; border-bottom: 1px solid var(--hairline); }
+  .qa-item .q { font-weight: 700; margin-bottom: 4px; display: flex; gap: 10px; line-height: 1.8; }
+  .qa-item .q::before {
+    content: "问";
+    font-family: var(--kai); color: var(--vermillion);
+    border: 1px solid currentColor;
+    width: 22px; height: 22px; flex: none;
+    display: inline-grid; place-items: center;
+    font-size: .76rem; margin-top: .42em;
+  }
+  .qa-item .a { color: var(--ink-soft); font-size: .93rem; line-height: 1.95; }
+  .qa-item .a p { margin: 0; }
+
+  /* ---------- 速记 ---------- */
+  .skeleton { border: 1.5px dashed rgba(38,34,26,.45); padding: 20px 26px 10px; margin: 30px 0; }
+  .skeleton ol { margin: 0; padding-left: 1.5em; }
+  .recap-cta {
+    text-align: center;
+    font-family: var(--kai);
+    font-size: 1.12rem; line-height: 2.15;
+    margin: 42px auto 0;
+    max-width: 34em;
+  }
+  .recap-cta .hl { color: var(--vermillion); font-weight: 700; }
+  .recap-cta p { margin-bottom: .9em; }
+
+  /* ---------- 页脚 ---------- */
+  footer {
+    margin-top: 84px;
+    border-top: 1px solid var(--hairline);
+    padding: 32px 0 64px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: .8rem;
+    letter-spacing: .2em;
+  }
+  .end-seal {
+    width: 42px; height: 42px;
+    background: var(--vermillion); color: #f7efdd;
+    display: inline-grid; place-items: center;
+    font-family: var(--kai); font-size: 1.05rem;
+    transform: rotate(-4deg);
+    margin-bottom: 16px;
+    box-shadow: inset 0 0 0 2px rgba(247,239,221,.8), inset 0 0 0 3px var(--vermillion);
+  }
+
+  /* ---------- 浮动控件 ---------- */
+  .fs {
+    position: fixed; left: 16px; bottom: 16px; z-index: 90;
+    display: flex; align-items: stretch;
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    box-shadow: 3px 3px 0 rgba(38,34,26,.1);
+  }
+  .fs button {
+    border: 0; background: transparent;
+    font-family: var(--serif); color: var(--ink-soft);
+    padding: 7px 12px; cursor: pointer; line-height: 1.3;
+    transition: background .2s, color .2s;
+  }
+  .fs button:nth-child(1) { font-size: .72rem; }
+  .fs button:nth-child(2) { font-size: .9rem; }
+  .fs button:nth-child(3) { font-size: 1.1rem; }
+  .fs button.on { background: var(--ink); color: var(--paper); }
+  .fs button:hover:not(.on) { color: var(--ink); }
+
+  .top-btn {
+    position: fixed; right: 16px; bottom: 16px; z-index: 90;
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid var(--ink);
+    background: var(--paper); color: var(--ink);
+    font-size: 17px; cursor: pointer;
+    opacity: 0; visibility: hidden; transform: translateY(10px);
+    transition: .3s;
+    box-shadow: 3px 3px 0 rgba(38,34,26,.12);
+  }
+  .top-btn.show { opacity: 1; visibility: visible; transform: none; }
+  .top-btn:hover { background: var(--vermillion); border-color: var(--vermillion); color: #fff; }
+
+  /* ---------- 动效 ---------- */
+  @keyframes rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes stamp {
+    0% { opacity: 0; transform: rotate(5deg) scale(1.7); }
+    60% { opacity: 1; }
+    100% { opacity: 1; transform: rotate(5deg) scale(1); }
+  }
+  .reveal { opacity: 0; transform: translateY(26px); transition: opacity .8s ease, transform .8s cubic-bezier(.22,.61,.36,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .cover > *, .toc, .seal, .wm { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width: 1060px) {
+    .layout { grid-template-columns: 1fr; padding: 30px 22px 0; }
+    .toc { display: none; }
+    .wm { display: none; }
+  }
+  @media (max-width: 640px) {
+    .grid4 { grid-template-columns: 1fr; }
+    table { font-size: .84rem; }
+    td:first-child { white-space: normal; }
+    .thesis { padding: 20px 22px 20px 52px; }
+    .seal { width: 68px; height: 68px; font-size: 1.15rem; top: 22px; }
+    .cover { padding-top: 40px; }
+    .mines { padding: 20px 20px 18px; }
+    .callout { padding: 18px 18px; }
+  }
+
+  /* ---------- 打印 ---------- */
+  @media print {
+    .band, .progress, .toc, .fs, .top-btn, .vlabel, .wm, .seal { display: none !important; }
+    body { background: #fff; padding-top: 0; }
+    body::before, body::after { display: none; }
+    .layout { display: block; max-width: none; padding: 0; }
+    main { max-width: none; }
+    .reveal { opacity: 1 !important; transform: none !important; }
+    .mines { background: #fff; color: #111; border: 2px solid #111; }
+    .mines li, .mines strong { color: #111; }
+    .thesis, .callout, figure.tbl, .grid4 { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div class="band" aria-hidden="true"></div>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<div class="layout">
+
+  <!-- ============ 目录 ============ -->
+  <nav class="toc" aria-label="目录">
+    <p class="toc-title">目 录</p>
+    <a href="#intro"><span class="zh">引</span><span class="en">导读 · 三题一线</span></a>
+    <a href="#s1"><span class="zh">壹</span><span class="en">第一讲 · 产品边界</span></a>
+    <a href="#s2"><span class="zh">贰</span><span class="en">第二讲 · 技术栈</span></a>
+    <a href="#s3"><span class="zh">叁</span><span class="en">第三讲 · 客户画像</span></a>
+    <a href="#recap"><span class="zh">附</span><span class="en">考前速记</span></a>
+  </nav>
+
+  <main>
+
+    <!-- ============ 封面 ============ -->
+    <header class="cover">
+      <span class="wm" aria-hidden="true">叁</span>
+      <div class="seal" aria-hidden="true"><span>面</span><span>试</span><span>手</span><span>稿</span></div>
+      <p class="kicker">面试准备 · AI 产品岗 · 二〇二六年九月</p>
+      <h1>AI 产品面试三讲</h1>
+      <p class="sub">边界 · 技术栈 · 客户画像<br>—— 三道高频题，一条方法论</p>
+      <div class="meta">
+        <span>手稿一册</span><span>五节</span><span>建议精读 25 分钟</span><span>荧光笔已划好重点</span>
+      </div>
+      <p class="abstract">这份手稿整理了 AI 产品岗面试中出现频率最高的三道题：<b>产品的边界在哪、技术栈要懂到什么程度、目标客户是谁</b>。三道题看似独立，背后其实是同一条判断链——边界回答「该不该做」，技术栈回答「怎么做、花多少钱」，客户画像回答「谁为此付钱」。每讲按同一结构展开：核心论点、框架、你的牌、可背诵话术、雷区。</p>
+    </header>
+
+    <!-- ============ 导读 ============ -->
+    <section class="lecture" id="intro">
+      <span class="ghost" aria-hidden="true">引</span>
+      <span class="vlabel" aria-hidden="true">导读 · 三题一线</span>
+      <header class="sec-head">
+        <div class="kicker-line">
+          <span class="no">导读</span>
+          <span class="ex">READING GUIDE</span>
+        </div>
+        <h2>三道题，一条线</h2>
+        <p class="h2sub">把它们答成一套体系，而不是三个孤立的点</p>
+      </header>
+
+      <div class="reveal">
+        <p>这三道题不是三个孤立考点，而是同一条逻辑链上的三环。面试官在每道题里各自埋了一层考察意图——边界考<strong>体系化判断力</strong>，技术栈考<strong>技术权衡感</strong>，客户画像考<strong>商业化思维</strong>——但串起来答，展示的是最稀缺的体系化思维：一个完整的商业判断刚好闭环。</p>
+        <div class="flow">
+          <div class="node"><b>边 界</b><i>该不该做</i></div>
+          <span class="fa">→</span>
+          <div class="node"><b>技术栈</b><i>怎么做 · 多少钱</i></div>
+          <span class="fa">→</span>
+          <div class="node"><b>客户画像</b><i>谁付钱</i></div>
+        </div>
+        <p class="chain-note">容错率低的边界 → 决定技术栈里要配护栏与评估体系 → 决定交付成本 → 决定谁能付得起钱。</p>
+        <p>面试时主动把三题串起来讲：在技术栈里提到容错率，在客户画像里提到边界，在边界里提到成本——<mark>每道题都从上一道题的结论出发</mark>，这是普通候选人和体系化候选人之间的分水岭。</p>
+        <p>每讲的展开结构完全一致：<strong>核心论点 → 框架 → 你的牌（风控背景的迁移）→ 面试话术（可直接背诵）→ 雷区</strong>。阅读约定如下：</p>
+        <ul class="legend">
+          <li><span class="demo"><mark>关键词</mark></span><span>荧光笔划线 = 必须带走的关键词</span></li>
+          <li><span class="demo"><span class="d-script">话术</span></span><span>米色卡片 = 可直接背诵的段落</span></li>
+          <li><span class="demo"><span class="d-mines">雷区</span></span><span>深色块 = 千万别这么说</span></li>
+          <li><span class="demo"><span class="d-edge">你的牌</span></span><span>虚线框 = 结合风控背景的个人定位</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ 第一讲 ============ -->
+    <section class="lecture" id="s1">
+      <span class="ghost" aria-hidden="true">壹</span>
+      <span class="vlabel" aria-hidden="true">第一讲 · 产品的边界</span>
+      <header class="sec-head reveal">
+        <div class="kicker-line">
+          <span class="no">第一讲</span>
+          <span class="ex">LECTURE 01 · 考察：体系化判断力</span>
+        </div>
+        <h2>AI 产品的边界在哪</h2>
+        <p class="h2sub">筛选题——考的不是结论，是方法论</p>
+        <p class="intent"><b>面试官意图：</b>想看的不是「AI 有幻觉、会出错」这类人人都会说的结论，而是你有没有一套「什么交给 AI、什么留给人和确定性系统」的判断方法论。回答的关键是给出<b>决策框架 + 具体例子</b>。</p>
+      </header>
+
+      <div class="thesis reveal">
+        <span class="tag">核心论点</span>
+        <p>AI 产品的边界不在「AI 能不能做」，而在<mark>「做错了怎么办」</mark>——由错误代价、可验证性、责任归属三个变量共同决定。</p>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">一</span>能力边界：概率系统 vs 确定性系统</h3>
+        <ul>
+          <li><strong>LLM 本质是概率生成</strong>，输出「通常对」但<mark>不保证对</mark>。凡是要求 100% 确定的环节（资金划扣、权限授予、数据删除），不能交给 AI，必须用规则和代码兜底。</li>
+          <li><strong>推理是「拟合」而非「计算」</strong>：复杂多步算术、严格逻辑链、长程规划仍然不可靠。</li>
+          <li>反过来看，<strong>模糊、非结构化、没有标准答案的任务</strong>（总结、抽取、改写、多轮对话）恰恰是 AI 的主场——传统代码做不了，AI 做到 80 分就是巨大增量。</li>
+        </ul>
+        <p class="em-line">产品含义：AI 适合做<mark>「从 0 到 70 分」的跃迁</mark>，不适合做「从 99 到 100 分」的冲刺。</p>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">二</span>场景边界：容错率决定产品形态</h3>
+        <p>最实用的一条判断轴，一张矩阵就能讲清楚：</p>
+        <figure class="tbl">
+          <figcaption>容错率矩阵</figcaption>
+          <div class="tscroll">
+            <table>
+              <thead>
+                <tr><th></th><th>错误可逆 / 代价低</th><th>错误不可逆 / 代价高</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>结果易验证</td><td>AI 自动执行（营销文案、代码补全）</td><td>AI 生成 + 人工审批（代码合入、风控人工复核）</td></tr>
+                <tr><td>结果难验证</td><td>AI 建议 + 人工判断（信息检索、头脑风暴）</td><td>慎用或不用（医疗诊断、司法量刑）</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </figure>
+        <p>产品设计的功夫全在这个矩阵里：<mark>容错率越低，人机协作的接缝设计越重要</mark>——AI 负责压缩工作量，人负责把关最后一公里。</p>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">三</span>责任边界：AI 永远不能是责任主体</h3>
+        <ul>
+          <li>AI 不能承担责任，所以<strong>最终决策权和署名权必须落在人或机构</strong>。在金融、医疗、法律等强监管行业，这是硬约束，不是产品设计偏好。</li>
+          <li>对应的设计模式：AI 输出必须<mark>可解释、可追溯、可驳回</mark>；高风险动作强制 human-in-the-loop；监管场景下（生成式 AI 管理办法等）还有内容合规、数据来源等要求。</li>
+        </ul>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">四</span>商业边界：AI 是产品还是功能</h3>
+        <ul>
+          <li>很多场景里 AI 只是<strong>功能增强</strong>（更好的搜索、更快的客服），不构成独立产品——这类场景用 API 就够了，不值得从零造。</li>
+          <li>只有当 AI 带来<strong>交互范式的改变</strong>（自然语言成为主要入口、任务级交付替代工具操作）时，才值得做 AI 原生产品。</li>
+          <li>还有一条隐性边界：<mark>单位任务成本</mark>——token 成本高于被替代的人力成本时，商业模式不成立。</li>
+        </ul>
+      </div>
+
+      <div class="callout edge reveal">
+        <span class="tag tag--solid">你的牌 · 风控背景</span>
+        <p>风控恰好是把「模型边界」工程化得最好的领域——模型只输出概率分，而<strong>截断规则、人工审核队列、额度策略、回捞机制</strong>，全是在给模型边界做补丁。这段经验可以直接迁移：判断一个 AI 功能该不该做的第一反应，就是「它错了之后，有没有兜底路径，兜底成本是多少」。</p>
+      </div>
+
+      <div class="callout script reveal">
+        <span class="tag">面试话术 · 可背诵</span>
+        <blockquote>
+          <p>我在风控里天天处理边界问题：模型给分数，但拒绝 / 放行的最终动作永远由策略和人来定。这套思路迁移到 AI 产品是一样的——AI 负责把不确定性压缩成结构化的建议，确定性系统和人负责执行。所以我判断一个 AI 功能该不该做，第一个问题就是：它错了之后，我们有没有兜底路径，兜底成本是多少。</p>
+        </blockquote>
+      </div>
+
+      <div class="mines reveal">
+        <span class="tag">常见失分点</span>
+        <h4><span class="lei">雷</span>三个雷区</h4>
+        <ol>
+          <li><strong>别只说「AI 有局限」</strong>——不给出判断框架，等于没回答。</li>
+          <li><strong>别把边界说成静态</strong>——要补一句「边界在移动」（去年做不到的 agent 任务今年能做了），说明你追踪技术演进，边界判断需要持续重估。</li>
+          <li><strong>别显得 AI 悲观</strong>——框架的落点是「正因为有边界，才需要产品设计」：边界是产品经理的价值所在，不是 AI 的失败。</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ 第二讲 ============ -->
+    <section class="lecture" id="s2">
+      <span class="ghost" aria-hidden="true">贰</span>
+      <span class="vlabel" aria-hidden="true">第二讲 · 技术栈</span>
+      <header class="sec-head reveal">
+        <div class="kicker-line">
+          <span class="no">第二讲</span>
+          <span class="ex">LECTURE 02 · 考察：技术权衡感</span>
+        </div>
+        <h2>AI 技术栈要懂到什么程度</h2>
+        <p class="h2sub">不是会实现，而是能权衡</p>
+        <p class="intent"><b>面试官意图：</b>「了解 AI 技术栈」的潜台词是——你能不能参与技术方案讨论、听懂工程团队的话、对技术选型做出有依据的判断。回答的姿态：<b>分层地图 + 每层的关键决策点</b>，而不是背名词。</p>
+      </header>
+
+      <div class="thesis reveal">
+        <span class="tag">核心论点</span>
+        <p>技术栈不是名词清单，而是一组决策：每一层都有「用不用、用哪个、什么时候换」的权衡。<mark>分层结构和决策框架是稳定的</mark>，具体组件每半年一变——掌握前者。</p>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">一</span>一张四层地图</h3>
+        <figure class="tbl">
+          <figcaption>AI 应用技术栈 · 四层</figcaption>
+          <div class="tscroll">
+            <table>
+              <thead>
+                <tr><th>层次</th><th>组成</th><th>PM 的决策点</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>基础设施层</td>
+                  <td>GPU 算力；云平台（百炼 / Bedrock / 火山方舟）；推理优化（量化、vLLM、KV cache）</td>
+                  <td>成本结构：推理成本随调用量<mark>线性增长</mark>，是很多 AI 产品算不过账的根源；延迟、吞吐、成本的三角权衡</td>
+                </tr>
+                <tr>
+                  <td>模型层</td>
+                  <td>闭源 API（GPT / Claude / Qwen / DeepSeek）vs 开源自部署；通用 vs 推理模型；embedding、rerank 等小模型</td>
+                  <td>API 还是自部署：<mark>数据安全、单位成本、可控性</mark>三轴判断；选型看「能力-成本-延迟」匹配，不追最新</td>
+                </tr>
+                <tr>
+                  <td>中间层（编排）</td>
+                  <td>Prompt 工程；RAG；Agent（工具调用 / 规划）；微调（SFT / LoRA）；记忆与上下文；模型网关</td>
+                  <td><strong>PM 价值最大的一层</strong>——见下方决策链</td>
+                </tr>
+                <tr>
+                  <td>应用层</td>
+                  <td>Chatbot / Copilot / Agent 三种形态；评估（evals）、监控、护栏（guardrails）、数据闭环</td>
+                  <td>效果不可保证时，<mark>验收标准怎么定</mark>；安全与合规设计</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </figure>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">二</span>中间层是主战场：一条决策链走天下</h3>
+        <p>最高频的考点就是「什么时候用什么技术」，一条决策链覆盖大半提问：</p>
+        <div class="chain">
+          <span class="step">Prompt<em>零成本 · 快迭代</em></span>
+          <span class="arr">→</span>
+          <span class="step">RAG<em>知识外挂</em></span>
+          <span class="arr">→</span>
+          <span class="step">微调<em>行为固化</em></span>
+        </div>
+        <p class="chain-note">成本与侵入性递增——永远从左往右试。</p>
+        <div class="grid4">
+          <div class="tech">
+            <div class="tname"><span class="gana">甲</span><b>Prompt 工程</b></div>
+            <p>解决 <strong>60–70% 的问题</strong>，零成本、可快速迭代。few-shot、思维链（CoT）、结构化输出都是这里的工具。</p>
+          </div>
+          <div class="tech">
+            <div class="tname"><span class="gana">乙</span><b>RAG</b></div>
+            <p>模型知识过时、私有领域知识缺失时用。链路：切分 → embedding → 检索 → 重排 → 生成。PM 要盯的不是向量库选型，而是<strong>知识库质量、切分策略、检索命中率</strong>——这些决定产品效果上限。</p>
+          </div>
+          <div class="tech">
+            <div class="tname"><span class="gana">丙</span><b>微调（SFT / LoRA）</b></div>
+            <p>只有需要固化「风格 / 格式 / 领域行为」、且有<strong>上千条高质量标注数据</strong>时才值得做。微调不解决知识更新——那是 RAG 的事。把这个区分说清楚，本身就是加分项。</p>
+          </div>
+          <div class="tech">
+            <div class="tname"><span class="gana">丁</span><b>Agent</b></div>
+            <p>核心是<strong>工具调用 + 规划 + 循环执行</strong>。PM 的判断点是任务的可验证性与容错率——直接衔接第一讲的边界框架，面试时主动串起来会非常出彩。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">三</span>应用层两个必答题</h3>
+        <div class="qa">
+          <div class="qa-item">
+            <div class="q">生成式产品怎么评估效果？</div>
+            <div class="a"><p>没有标准答案时：离线建 eval 集（golden set + LLM-as-judge），线上看<strong>人工采纳率 / 修改率 / 留存</strong>。<mark>指标设计比模型选型更重要</mark>。</p></div>
+          </div>
+          <div class="qa-item">
+            <div class="q">怎么控制坏输出？</div>
+            <div class="a"><p>护栏分层：<strong>输入侧过滤 → 模型约束（结构化输出、拒答策略）→ 输出侧校验 → 高风险动作人工确认</strong>。</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout edge reveal">
+        <span class="tag tag--solid">你的牌 · 风控背景</span>
+        <p>做过完整的「训练 → 评估 → 部署 → 监控」闭环——这套功底正是 AI 应用工程（LLMOps）最稀缺的。风控的<strong>离线评估（KS / AUC）对应 LLM 的 evals 体系</strong>，线上监控与回捞对应 guardrails 与反馈闭环；大数据背景（MaxCompute / 数仓）对应<strong>知识库与语料建设</strong>——RAG 效果的决定因素。数据侧和评估侧是主场，模型 API 的调用细节可以很快补上。</p>
+      </div>
+
+      <div class="callout script reveal">
+        <span class="tag">面试话术 · 可背诵</span>
+        <blockquote>
+          <p>我对技术栈的理解是从模型全生命周期来的：风控模型上线前有离线评估（KS / AUC），上线后有监控和回捞——这套方法论对应到 LLM 就是 evals 体系、guardrails 和线上反馈闭环。很多人只关注模型层，而我认为决定 AI 产品成败的，恰恰是评估和数据闭环这层工程配套。另外我的大数据背景对应的是知识库和语料建设，这是 RAG 效果的决定因素——数据侧和评估侧是我的主场，模型 API 的调用细节我可以很快补上。</p>
+        </blockquote>
+      </div>
+
+      <div class="mines reveal">
+        <span class="tag">常见失分点</span>
+        <h4><span class="lei">雷</span>三个雷区</h4>
+        <ol>
+          <li><strong>别背模型参数和架构</strong>（transformer 几层、attention 怎么算）——说了反而显得定位不清，除非面的是技术型 AI PM。</li>
+          <li><strong>别漏掉「成本」这条线</strong>——面试官问技术栈时，暗中在考察商业意识；主动算 token 成本账是加分项。</li>
+          <li><strong>别把技术栈说成静态清单</strong>——收尾补一句：技术栈每半年一变（比如今年 MCP 标准化了工具调用），但分层结构和决策框架是稳定的，我掌握的是后者。这句话本身就是认知深度的证明。</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ 第三讲 ============ -->
+    <section class="lecture" id="s3">
+      <span class="ghost" aria-hidden="true">叁</span>
+      <span class="vlabel" aria-hidden="true">第三讲 · 客户画像</span>
+      <header class="sec-head reveal">
+        <div class="kicker-line">
+          <span class="no">第三讲</span>
+          <span class="ex">LECTURE 03 · 考察：商业化思维</span>
+        </div>
+        <h2>强应用大模型的目标客户画像</h2>
+        <p class="h2sub">从「技术能做什么」到「谁愿意付钱、为什么付」</p>
+        <p class="intent"><b>面试官意图：</b>考商业化思维。大部分人会答成行业罗列（金融、医疗、教育……），那等于没答——好的回答给出<b>特征维度</b>，行业只是特征的投影。</p>
+      </header>
+
+      <div class="thesis reveal">
+        <span class="tag">核心论点</span>
+        <p>目标客户不由行业定义，而由四个特征定义：<mark>认知劳动密集、数据基础好、ROI 算得清、容错率匹配</mark>。行业清单只是筛选结果。</p>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">一</span>四个特征维度</h3>
+        <ol>
+          <li><strong>认知劳动密集</strong>——组织里存在大量重复性知识工作（客服问答、文档审阅、报告撰写、代码、营销素材）。大模型能规模化替代的<mark>只有认知劳动</mark>，替代体力劳动是机器人公司的事。量化抓手：知识型岗位的人力成本占比。</li>
+          <li><strong>数据基础好</strong>——语料已电子化、有沉淀、质量可控。RAG 的效果上限由知识库质量决定；数字化落后的客户需要先补信息化课——他们是系统集成商的客户，不是大模型应用的客户。</li>
+          <li><strong>ROI 算得清</strong>——有量化基线可对照：客服有人均接线量、营销有转化率、研发有代码采纳率。<mark>算不清账的场景只能做 POC，做不成生意</mark>。</li>
+          <li><strong>容错率匹配</strong>——容错高就全自动交付，容错低就 AI 辅助 + 人把关（衔接第一讲的边界框架）。容错率同时决定产品形态和交付成本，直接影响客单价能不能覆盖。</li>
+        </ol>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">二</span>行业渗透梯度：谁先买单</h3>
+        <figure class="tbl">
+          <figcaption>渗透梯度</figcaption>
+          <div class="tscroll">
+            <table>
+              <thead>
+                <tr><th>梯队</th><th>行业</th><th>原因</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>已规模化</td><td>金融、政务 / 央国企、运营商、互联网</td><td>预算充足 + 数据基础好 + 政策驱动（央企「AI+」专项行动）</td></tr>
+                <tr><td>快速渗透</td><td>法律、医疗、教育、工业制造</td><td>知识密度极高，但合规与容错率把节奏拖慢一拍</td></tr>
+                <tr><td>早期</td><td>文旅、农业、建筑</td><td>数据基础与付费能力均未到位</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </figure>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">三</span>客户分层 × 商业模式</h3>
+        <figure class="tbl">
+          <figcaption>客户分层</figcaption>
+          <div class="tscroll">
+            <table>
+              <thead>
+                <tr><th>客户</th><th>付费逻辑</th><th>产品形态</th><th>特点</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>央国企 / 政务</td><td>政策性预算（考核驱动）</td><td>私有化部署、项目制</td><td>高客单、重交付、长决策链、数据不出域</td></tr>
+                <tr><td>大型民企（金融 / 制造 / 零售）</td><td>效率预算（降本驱动）</td><td>场景深度定制</td><td>中高客单，<mark>要求效果验收标准</mark></td></tr>
+                <tr><td>中型企业</td><td>订阅省钱</td><td>标准 SaaS / API 轻接入</td><td>价格敏感，看重开箱即用</td></tr>
+                <tr><td>小微 / 个人</td><td>基本不付费</td><td>直接用通用工具（豆包 / Kimi）</td><td>不是 to B 目标客户</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </figure>
+        <p>一个值得主动讲的趋势判断：<mark>决策者正在从 CTO / 信息化部门下移到业务部门</mark>——2023 年是技术尝鲜者为「战略故事」买单，2024–2025 转入价值验证期，业务负责人只认「省了几个人、涨了多少转化」。谁验收，决定了你的产品文档写给谁看。</p>
+      </div>
+
+      <div class="reveal">
+        <h3><span class="idx">四</span>反向画像：谁不是客户</h3>
+        <ul>
+          <li><strong>数字化程度低的组织</strong>——先解决信息化，再谈智能化；他们是系统集成商的客户，不是大模型的客户。</li>
+          <li><strong>痛点在流程和组织、而非认知劳动的客户</strong>——AI 解决不了管理问题。</li>
+          <li><strong>想要「一个 AI 什么都干」的客户</strong>——POC 幻觉客户，验收永远过不了，要靠场景聚焦的销售纪律主动筛掉。</li>
+          <li><strong>单位任务 token 成本高于被替代人力成本的场景</strong>——账算不过来，模型降价前不碰。</li>
+        </ul>
+        <p class="em-line"><mark>敢定义「不服务谁」，比罗列「服务谁」更能证明你懂 to B。</mark></p>
+      </div>
+
+      <div class="callout edge reveal">
+        <span class="tag tag--solid">你的牌 · 风控背景</span>
+        <p>金融就是画像里第一梯队最典型的客户：<strong>风控本身就是数据生意</strong>；智能客服、审贷材料核验、研报生成全是认知劳动密集场景。金融监管要求可解释、可追溯，反而催生了「模型输出 + 策略兜底 + 人工复核」的标准产品形态——我在风控里做的，正是这套架构的落地。</p>
+      </div>
+
+      <div class="callout script reveal">
+        <span class="tag">面试话术 · 可背诵</span>
+        <blockquote>
+          <p>我所在的金融行业就是画像里最典型的客户：风控本身就是数据生意，智能客服、审贷材料核验、研报生成全是认知劳动密集场景；而且金融监管要求可解释、可追溯，反而催生了「模型输出 + 策略兜底 + 人工复核」的标准产品形态——我在风控里做的正是这套架构的落地。所以我看 AI 应用客户，第一反应是去拆它的认知劳动在哪、数据在哪、错误代价多大，这三个问题答完，这个客户值不值得做基本就清楚了。</p>
+        </blockquote>
+      </div>
+
+      <div class="mines reveal">
+        <span class="tag">常见失分点</span>
+        <h4><span class="lei">雷</span>三个雷区</h4>
+        <ol>
+          <li><strong>别答成行业清单</strong>——没有特征维度，面试官会认为你只是背了报告。</li>
+          <li><strong>别只说谁买单、不说谁不买单</strong>——客户画像的价值一半在排除。</li>
+          <li><strong>别说成静态的</strong>——画像随「单位智能成本」曲线移动：推理成本每降一档，原来算不过账的场景（营销素材、客服全量替代）就会滚进目标客户范围，画像需要定期重估。</li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ 考前速记 ============ -->
+    <section class="lecture" id="recap">
+      <span class="ghost" aria-hidden="true">附</span>
+      <span class="vlabel" aria-hidden="true">附 · 考前速记</span>
+      <header class="sec-head reveal">
+        <div class="kicker-line">
+          <span class="no">附录</span>
+          <span class="ex">CHEAT SHEET</span>
+        </div>
+        <h2>考前速记</h2>
+        <p class="h2sub">面试前十五分钟，只看这一节</p>
+      </header>
+
+      <div class="reveal">
+        <figure class="tbl">
+          <figcaption>三讲 · 一览</figcaption>
+          <div class="tscroll">
+            <table>
+              <thead>
+                <tr><th>题</th><th>一句话答案</th><th>关键词</th><th>你的锚点</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>边界在哪</td>
+                  <td>不在「能不能做」，在「做错了怎么办」：错误代价 × 可验证性 × 责任归属</td>
+                  <td>概率 vs 确定性、容错率矩阵、human-in-the-loop、0→70 分</td>
+                  <td>风控：模型给分，策略与人做最终动作</td>
+                </tr>
+                <tr>
+                  <td>技术栈</td>
+                  <td>不是名词清单，是一组决策；分层结构稳定，组件每半年一变</td>
+                  <td>四层地图、Prompt→RAG→微调、evals、护栏、token 成本账</td>
+                  <td>风控全生命周期 → LLMOps；数仓 → 知识库</td>
+                </tr>
+                <tr>
+                  <td>客户画像</td>
+                  <td>四特征：认知劳动密集、数据基础好、ROI 算得清、容错率匹配</td>
+                  <td>反向画像、渗透梯度、决策者下移到业务部门</td>
+                  <td>金融 = 第一梯队最典型客户，我就在其中</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </figure>
+      </div>
+
+      <div class="reveal">
+        <div class="skeleton">
+          <span class="tag">万能答题骨架</span>
+          <ol>
+            <li><strong>一句话观点</strong>——先给结论，不让面试官等；</li>
+            <li><strong>框架</strong>——两到四个维度，或一张矩阵 / 分层表；</li>
+            <li><strong>例子</strong>——具体到产品和数字；</li>
+            <li><strong>个人锚点</strong>——风控经验的迁移；</li>
+            <li><strong>动态收尾</strong>——「边界在移动，判断需要重估」。</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="recap-cta reveal">
+        <p>三道题最后都回到同一句话：</p>
+        <p class="hl">「AI 负责把不确定性压缩成结构化的建议，<br>确定性系统和人负责执行。」</p>
+        <p>面试不是背答案，而是把真实经验放进框架——<br>框架让人记住你，经验让人相信你。</p>
+      </div>
+    </section>
+
+    <footer>
+      <div class="end-seal" aria-hidden="true">终</div>
+      <p>手稿完 · 二〇二六年九月十七日整理 · 祝面试顺利</p>
+    </footer>
+
+  </main>
+</div>
+
+<!-- 字号控制 -->
+<div class="fs" role="group" aria-label="字号">
+  <button type="button" data-fs="fs-s">小</button>
+  <button type="button" data-fs="fs-m" class="on">中</button>
+  <button type="button" data-fs="fs-l">大</button>
+</div>
+
+<!-- 回到顶部 -->
+<button type="button" class="top-btn" id="topBtn" aria-label="回到顶部">↑</button>
+
+<script>
+(function () {
+  var html = document.documentElement;
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- 字号 ---- */
+  var fsButtons = document.querySelectorAll('.fs button');
+  function applyFs(fs, save) {
+    html.classList.remove('fs-s', 'fs-m', 'fs-l');
+    html.classList.add(fs);
+    fsButtons.forEach(function (b) { b.classList.toggle('on', b.dataset.fs === fs); });
+    if (save) { try { localStorage.setItem('interview-fs', fs); } catch (e) {} }
+  }
+  fsButtons.forEach(function (b) {
+    b.addEventListener('click', function () { applyFs(b.dataset.fs, true); });
+  });
+  try {
+    var saved = localStorage.getItem('interview-fs');
+    if (saved) applyFs(saved, false);
+  } catch (e) {}
+
+  /* ---- 滚动进入显示 ---- */
+  var revealEls = document.querySelectorAll('.reveal');
+  if (reduceMotion || !('IntersectionObserver' in window)) {
+    revealEls.forEach(function (el) { el.classList.add('in'); });
+  } else {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      });
+    }, { threshold: .06, rootMargin: '0px 0px -6% 0px' });
+    revealEls.forEach(function (el) { io.observe(el); });
+  }
+
+  /* ---- 进度条 + 目录高亮 + 回顶 ---- */
+  var progress = document.getElementById('progress');
+  var topBtn = document.getElementById('topBtn');
+  var tocLinks = Array.prototype.slice.call(document.querySelectorAll('.toc a'));
+  var secs = tocLinks.map(function (a) {
+    return { link: a, el: document.querySelector(a.getAttribute('href')) };
+  }).filter(function (m) { return m.el; });
+
+  var ticking = false;
+  function onScroll() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function () {
+      var y = window.scrollY || html.scrollTop;
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      progress.style.width = (max > 0 ? (y / max) * 100 : 0) + '%';
+
+      topBtn.classList.toggle('show', y > 600);
+
+      var mark = y + window.innerHeight * .35;
+      var cur = secs[0];
+      secs.forEach(function (m) {
+        if (m.el.getBoundingClientRect().top + y <= mark) cur = m;
+      });
+      tocLinks.forEach(function (l) { l.classList.remove('on'); });
+      if (cur) cur.link.classList.add('on');
+      ticking = false;
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  onScroll();
+
+  topBtn.addEventListener('click', function () {
+    window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+  });
+})();
+</script>
+
+</body>
+</html>
