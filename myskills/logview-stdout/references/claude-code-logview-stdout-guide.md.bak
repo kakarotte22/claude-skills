@@ -1,0 +1,264 @@
+# 从 MaxCompute LogView 提取 Driver Stdout 日志操作指南
+
+## 目标
+从阿里云 MaxCompute Spark 任务的 LogView URL 中提取 Driver 的 Stdout 输出内容（即任务的实际运行输出日志）。
+
+## 前提条件
+- 拥有玄麟平台（https://prism.shizhuang-inc.com）的访问权限
+- 有对应 MaxCompute 项目的阿里云账号权限
+- 已有 LogView URL
+
+---
+
+## 操作步骤
+
+### 第一步：启动 Chrome 浏览器（用于浏览器自动化）
+
+```bash
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
+  --remote-debugging-port=9222 \
+  --user-data-dir="$HOME/Library/Application Support/Google/Chrome-Claude" \
+  --no-first-run \
+  --no-default-browser-check \
+  2>/dev/null &
+```
+
+启动后**必须确认 Chrome 完全就绪**再继续，否则 Playwright 会报 `Target page, context or browser has been closed`：
+
+```bash
+# 轮询调试端口，直到 Chrome 响应为止
+until curl -s http://localhost:9222/json/version > /dev/null; do sleep 1; done
+```
+
+> ⚠️ 不要在启动命令后立即调用 Playwright 导航——Chrome 是后台异步启动，需等待端口就绪才能操作。
+
+### 第二步：打开 LogView URL，判断登录状态
+
+使用 Playwright 导航到 LogView URL：
+
+```js
+await page.goto('http://logview.odps.aliyun.com/logview/?h=<endpoint>&p=<project>&i=<instance_id>&token=<token>');
+```
+
+**根据页面跳转结果判断登录状态：**
+
+#### ✅ 情况一：已登录（直接进入任务详情）
+页面自动跳转到：
+```
+https://maxcompute.console.aliyun.com/cn-hangzhou/job-insights?...
+```
+显示任务详情页（LogView），**直接跳到第四步**。
+
+#### ❌ 情况二：未登录（跳转到登录页）
+页面被重定向到阿里云登录页，可能出现以下两种形式：
+- `account.aliyun.com/login/login.htm` → 通用登录页（账密登录）
+- `signin.aliyun.com/poizon.onaliyun.com/login.htm` → RAM 用户登录页（企业 SSO）
+
+两种情况均表示**未登录**，需继续执行第三步。
+
+---
+
+### 第三步：通过玄麟平台登录阿里云（仅未登录时需要）
+
+**3.1 打开玄麟平台云账号管理页：**
+
+```js
+await page.goto('https://prism.shizhuang-inc.com/sre/cloud/account');
+```
+
+**3.2 点击阿里云账号"控制台登陆"按钮：**
+
+使用 `browser_run_code_unsafe`，按行文本内容精确定位阿里云账号（含 `poizon.onaliyun.com`）那一行的"控制台登陆"按钮并点击：
+
+```js
+async (page) => {
+  const buttons = await page.$$('button');
+  for (const btn of buttons) {
+    const text = await btn.textContent();
+    if (text && text.trim() === '控制台登陆') {
+      const row = await btn.evaluateHandle(el => el.closest('tr'));
+      const rowText = await row.evaluate(el => el ? el.textContent : '');
+      if (rowText.includes('poizon.onaliyun.com')) {
+        await btn.click();
+        return '点击成功';
+      }
+    }
+  }
+  return '未找到目标按钮';
+}
+```
+
+> ⚠️ 不要用 `page.getByRole('button', { name: '控制台登陆' }).first().click()`——页面有多行账号时会点到错误的行。
+> ⚠️ 不要把 snapshot 的 `ref=eXXX` 当作 CSS selector 字符串传给 `browser_click` 的 `target`，会报 `Unknown engine "ref"` 错误。`browser_click` 不支持 ref 格式，必须用上面的代码方式按内容定位。
+
+点击后系统弹出**"跳转提示"**对话框，显示"发起跳转成功"，同时自动在新标签页打开阿里云控制台首页，即表示 SSO 登录成功。
+
+**3.3 若新标签页未自动打开，点击弹窗中的"点我试试"重试：**
+
+```js
+// "点我试试"是一个无 href 的 <a> 标签，需通过 JS 触发点击
+await page.evaluate(() => {
+  const all = document.querySelectorAll('*');
+  for (const el of all) {
+    if (el.textContent.trim() === '点我试试') {
+      el.click();
+      break;
+    }
+  }
+});
+```
+
+只要浏览器标签页中出现"阿里云控制台首页"，即表示登录成功。
+
+> 注意：阿里云登录会话有效期为 **12 小时**，SSO 短信验证有效期为 **72 小时**。
+
+**3.4 登录完成后，新开标签页重新打开 LogView URL：**
+
+```js
+await page.goto('http://logview.odps.aliyun.com/logview/?h=<endpoint>&p=<project>&i=<instance_id>&token=<token>');
+```
+
+此时应直接进入任务详情页。
+
+---
+
+### 第四步：查看任务基本信息
+
+LogView 页面左侧显示任务基本信息，确认是目标任务：
+
+| 字段 | 说明 |
+|------|------|
+| Project | 项目名（如 `du_risk_training`）|
+| Type | 任务类型（`KUBE` 表示 Spark 任务）|
+| Status | 任务状态（`Success` / `Failed` / `Running`）|
+| Start Time / End Time | 开始与结束时间 |
+| Latency | 总耗时 |
+| Progress | 执行进度（完成为 100%）|
+
+---
+
+### 第五步：定位 Driver 实例，点击 StdOut
+
+页面下方 Fuxi Jobs 表格中有 Driver 和 Executor 两行，Driver 实例详情在下方的 Fuxi Instance 表格中。点击 Driver 实例行的 StdOut 图标：
+
+**推荐方式：用 `browser_evaluate` 触发点击**
+
+```js
+// ⚠️ SVG 元素没有原生 .click() 方法，必须选外层容器并用 dispatchEvent
+await page.evaluate(() => {
+  const icons = document.querySelectorAll('.anticon.anticon-file-search');
+  if (icons[0]) {
+    icons[0].dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  }
+});
+```
+
+> ⚠️ 不要用 `.anticon-file-search > svg` 选中 SVG 元素后直接调 `.click()`，SVG 元素无此方法，会报 `TypeError: click is not a function`。
+> ⚠️ 不要在 `browser_run_code_unsafe` 的函数体内直接写 `document.querySelectorAll(...)`——该函数在 Node.js 环境执行，没有 `document`，会报 `ReferenceError`；需要操作 DOM 必须用 `browser_evaluate`。
+> ⚠️ 不要用 `browser_click` 的 `target` 传入 snapshot 的 `ref=eXXX`——`browser_click` 不支持 ref 格式，会报 `Unknown engine "ref"` 错误。
+
+弹出 **Stdout** 对话框，显示任务的标准输出内容。
+
+---
+
+### 第六步：读取并提取日志内容
+
+**通过 JS 提取 Stdout 对话框中的文本内容：**
+
+```js
+const stdout = await page.evaluate(() => {
+  // Stdout 对话框内的代码块文本
+  const lines = document.querySelectorAll('.logview-stdout-content .line, pre, code');
+  if (lines.length > 0) {
+    return Array.from(lines).map(l => l.textContent).join('\n');
+  }
+  // 备用：直接取对话框内所有文本
+  const dialog = document.querySelector('.ant-modal-body');
+  return dialog ? dialog.innerText : '';
+});
+console.log(stdout);
+```
+
+示例输出：
+
+```
+pt: 20260415
+入模特征数量: 84
+开始保存打分结果...
+打分完成, 结果已写入分区: pt=20260415
+INFO:py4j.clientserver:Closing down clientserver connection
+```
+
+- 如需下载完整日志，在对话框底部设置 **Download Size(MB)**，点击 **Download**
+- 勾选 **Auto refresh** 可在任务运行中实时刷新日志
+
+---
+
+## 完整流程图
+
+```
+启动 Chrome（--remote-debugging-port=9222）
+     │
+     ▼
+确认 Chrome 就绪（curl localhost:9222/json/version 有响应）
+     │
+     ▼
+page.goto(LogView URL)
+     │
+     ▼
+  页面跳转到哪里？
+     │
+  ┌──┴──────────────────────────┐
+  │ 阿里云登录页（未登录）          │ LogView 任务详情页（已登录）
+  ▼                              ▼
+page.goto(玄麟平台)          【直接跳到第四步】
+     │
+     ▼
+browser_run_code_unsafe 按行文本定位"控制台登陆"按钮并点击
+     │
+     ▼
+弹出"跳转提示"，新标签页出现阿里云控制台？
+     │
+  ├─ 是 → 登录成功
+  │
+  └─ 否 → page.evaluate() 点击"点我试试"重试
+     │
+     ▼
+page.goto(LogView URL)（新开标签页）
+     │
+     ▼
+确认任务基本信息（Project / Status 等）
+     │
+     ▼
+browser_evaluate 用 dispatchEvent 触发 .anticon-file-search 点击
+     │
+     ▼
+读取 Stdout 对话框中的日志内容 ✅
+```
+
+---
+
+## 关键要点
+
+- **优先直接打开 LogView URL**，若已有登录态可省去全部登录步骤
+- **Chrome 启动后必须等待就绪**再调用 Playwright，用 `curl localhost:9222/json/version` 轮询确认，直接操作会报 `Target page, context or browser has been closed`
+- 登录页有两种形态（通用登录页 / RAM 用户登录页），均表示未登录，处理方式相同
+- **"控制台登陆"按钮用 `browser_run_code_unsafe` 按行文本内容定位**，遍历所有 button 找到文本为"控制台登陆"且所在行含 `poizon.onaliyun.com` 的按钮再点击；不要用 `browser_click target=ref=eXXX`（`browser_click` 不支持 ref 格式，报 `Unknown engine "ref"`）
+- 玄麟平台"控制台登陆"点击后会弹出"跳转提示"，新标签页出现阿里云控制台即为登录成功；若未成功可点"点我试试"重试
+- **"点我试试"是无 href 的 `<a>` 标签**，需用 `page.evaluate()` 触发 JS click，直接用 Playwright locator 点击无效
+- **操作 DOM 必须用 `browser_evaluate`**，不能在 `browser_run_code_unsafe` 函数体内直接写 `document`（Node.js 环境无此对象，会报 `ReferenceError`）
+- **点击 StdOut 图标用 `browser_evaluate` + `dispatchEvent`**，不要选 `> svg` 后调 `.click()`（SVG 元素无此方法，报 `TypeError`），也不要用 `browser_click target=ref=eXXX`
+- **等待弹窗出现用 `browser_evaluate` 轮询 `.ant-modal-body` 是否存在**，不要用 `browser_wait_for time=N`（time 参数类型不稳定，易报错）
+- Spark 任务的实际输出在 **Driver** 的 **StdOut**，不在 Executor
+- StdOut 图标外层 CSS selector：`.anticon.anticon-file-search`，取第一个即为 Driver 的
+- Driver 实例 ID 格式：`application-<timestamp>-<id>-driver`，通常只有 **1 个**实例
+
+---
+
+## 相关页面
+
+| 名称 | URL |
+|------|-----|
+| 玄麟平台云账号管理 | https://prism.shizhuang-inc.com/sre/cloud/account |
+| LogView 入口 | http://logview.odps.aliyun.com/logview/ |
+| MaxCompute Job Insights | https://maxcompute.console.aliyun.com/cn-hangzhou/job-insights |
